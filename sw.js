@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lyric-collection-v2'; // ★更新時はここを v2, v3 と上げていきます
+const CACHE_NAME = 'lyric-collection-v3'; // ★更新時はここを v2, v3 と上げていきます
 const ASSETS = [
   './',
   './index.html',
