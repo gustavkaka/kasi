@@ -573,6 +573,43 @@
       border-radius: 10px;
     }
 
+    /* バックアップエリア（目立たないスタイル） */
+    .backup-section {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .backup-btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .secondary-btn {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-sub);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .secondary-btn:active {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
     /* 下部ナビゲーションバー */
     .bottom-nav {
       position: fixed;
@@ -752,6 +789,22 @@
         <div class="category-section">
           <div class="category-sec-title">種別</div>
           <div id="typeTags" class="category-tags"></div>
+        </div>
+
+        <!-- バックアップ・復元エリア -->
+        <div class="backup-section">
+          <div class="category-sec-title">データ管理</div>
+          <div class="backup-btn-group">
+            <button id="exportBtn" class="secondary-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              書き出し
+            </button>
+            <button id="importBtn" class="secondary-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              読み込み
+            </button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+          </div>
         </div>
       </div>
     </div>
@@ -1186,6 +1239,69 @@
         container.appendChild(tag);
       });
     }
+
+    // --- JSON書き出し（バックアップ） ---
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      if (!db) return;
+      const tx = db.transaction('lyrics', 'readonly');
+      const store = tx.objectStore('lyrics');
+      const req = store.getAll();
+
+      req.onsuccess = () => {
+        const dataStr = JSON.stringify(req.result, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lyric_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+    });
+
+    // --- JSON読み込み（復元） ---
+    const importBtn = document.getElementById('importBtn');
+    const importFileInput = document.getElementById('importFileInput');
+
+    importBtn.addEventListener('click', () => {
+      importFileInput.click();
+    });
+
+    importFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file || !db) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const lyrics = JSON.parse(event.target.result);
+          if (!Array.isArray(lyrics)) {
+            alert('正しいバックアップファイルではありません。');
+            return;
+          }
+
+          if (confirm(`${lyrics.length}件の歌詞データを読み込みます。よろしいですか？`)) {
+            const tx = db.transaction('lyrics', 'readwrite');
+            const store = tx.objectStore('lyrics');
+
+            lyrics.forEach(item => {
+              delete item.id; // 自動インクリメントIDとバッティングしないよう削除
+              store.add(item);
+            });
+
+            tx.oncomplete = () => {
+              alert('データの取り込みが完了いたしましたわ！');
+              drawerOverlay.classList.remove('active');
+              switchToListPage();
+            };
+          }
+        } catch (err) {
+          alert('ファイルの読み込みに失敗いたしました。JSON形式をご確認ください。');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // ファイルリセット
+    });
 
     searchInput.addEventListener('input', (e) => {
       renderLyricsList(e.target.value);
