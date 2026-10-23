@@ -573,7 +573,7 @@
       border-radius: 10px;
     }
 
-    /* バックアップエリア（目立たないスタイル） */
+    /* バックアップエリア */
     .backup-section {
       margin-top: auto;
       padding-top: 16px;
@@ -1222,7 +1222,8 @@
       const container = document.getElementById(containerId);
       container.innerHTML = '';
 
-      const keys = Object.keys(dataMap);
+      // 件数が多い順にソート（同数は順不同）
+      const keys = Object.keys(dataMap).sort((a, b) => dataMap[b] - dataMap[a]);
       if (keys.length === 0) {
         container.innerHTML = '<span style="font-size:0.75rem; color:var(--text-sub);">登録なし</span>';
         return;
@@ -1240,7 +1241,7 @@
       });
     }
 
-    // --- JSON書き出し（バックアップ） ---
+    // JSON書き出し
     document.getElementById('exportBtn').addEventListener('click', () => {
       if (!db) return;
       const tx = db.transaction('lyrics', 'readonly');
@@ -1259,7 +1260,7 @@
       };
     });
 
-    // --- JSON読み込み（復元） ---
+    // JSON読み込み
     const importBtn = document.getElementById('importBtn');
     const importFileInput = document.getElementById('importFileInput');
 
@@ -1285,7 +1286,7 @@
             const store = tx.objectStore('lyrics');
 
             lyrics.forEach(item => {
-              delete item.id; // 自動インクリメントIDとバッティングしないよう削除
+              delete item.id;
               store.add(item);
             });
 
@@ -1300,7 +1301,7 @@
         }
       };
       reader.readAsText(file);
-      e.target.value = ''; // ファイルリセット
+      e.target.value = '';
     });
 
     searchInput.addEventListener('input', (e) => {
