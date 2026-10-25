@@ -107,10 +107,10 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    /* ページエリア */
+    /* ページエリア（左右余白をスリム化） */
     .page {
       display: none;
-      padding: 16px;
+      padding: 12px 10px;
       flex-direction: column;
       gap: 12px;
     }
@@ -389,11 +389,11 @@
     .detail-hero {
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 20px;
+      border-radius: 16px;
+      padding: 16px 14px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
@@ -408,33 +408,33 @@
       color: var(--accent);
       font-size: 0.72rem;
       font-weight: 700;
-      padding: 4px 10px;
+      padding: 3px 8px;
       border-radius: 20px;
       letter-spacing: 0.5px;
     }
 
     .detail-song-title {
-      font-size: 1.4rem;
+      font-size: 1.25rem;
       font-weight: 800;
       line-height: 1.25;
       letter-spacing: -0.3px;
       color: #ffffff;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .detail-chips-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 4px;
+      gap: 6px;
+      margin-top: 2px;
     }
 
     .meta-chip {
       background: var(--chip-bg);
       border: 1px solid var(--card-border);
       border-radius: 8px;
-      padding: 5px 10px;
-      font-size: 0.78rem;
+      padding: 4px 8px;
+      font-size: 0.75rem;
       color: var(--text-sub);
       display: inline-flex;
       align-items: center;
@@ -453,22 +453,24 @@
       opacity: 0.6;
     }
 
+    /* 歌詞ステージ（高密度表示化） */
     .lyrics-stage {
       background: rgba(255, 255, 255, 0.015);
       border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 24px 18px;
+      border-radius: 16px;
+      padding: 18px 12px; /* 横幅を最大活用 */
       display: flex;
       flex-direction: column;
-      gap: 1.5em;
+      gap: 1.5em; /* ブロック間の比率は保持 */
     }
 
     .lyric-display-block {
-      font-size: 0.85rem;
-      line-height: 1.2;
-      letter-spacing: 0.03em;
+      font-size: 0.76rem; /* 文字を小ぶりにして収容量約1.5倍へ */
+      line-height: 1.2;  /* 行間1.2を保持 */
+      letter-spacing: 0;  /* 文字間を詰めて勝手な改行を防ぐ */
       white-space: pre-line;
       color: #f2f2f7;
+      word-break: break-word;
     }
 
     /* ドロワーメニュー */
@@ -1222,7 +1224,6 @@
       const container = document.getElementById(containerId);
       container.innerHTML = '';
 
-      // 件数が多い順にソート（同数は順不同）
       const keys = Object.keys(dataMap).sort((a, b) => dataMap[b] - dataMap[a]);
       if (keys.length === 0) {
         container.innerHTML = '<span style="font-size:0.75rem; color:var(--text-sub);">登録なし</span>';
