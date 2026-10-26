@@ -107,7 +107,7 @@
       background: rgba(255, 255, 255, 0.1);
     }
 
-    /* ページエリア（左右余白をスリム化） */
+    /* ページエリア */
     .page {
       display: none;
       padding: 12px 10px;
@@ -453,21 +453,21 @@
       opacity: 0.6;
     }
 
-    /* 歌詞ステージ（高密度表示化） */
+    /* 歌詞ステージ */
     .lyrics-stage {
       background: rgba(255, 255, 255, 0.015);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 16px;
-      padding: 18px 12px; /* 横幅を最大活用 */
+      padding: 18px 12px;
       display: flex;
       flex-direction: column;
-      gap: 1.5em; /* ブロック間の比率は保持 */
+      gap: 1.5em;
     }
 
     .lyric-display-block {
-      font-size: 0.76rem; /* 文字を小ぶりにして収容量約1.5倍へ */
-      line-height: 1.2;  /* 行間1.2を保持 */
-      letter-spacing: 0;  /* 文字間を詰めて勝手な改行を防ぐ */
+      font-size: 0.76rem;
+      line-height: 1.2;
+      letter-spacing: 0;
       white-space: pre-line;
       color: #f2f2f7;
       word-break: break-word;
@@ -665,7 +665,7 @@
         <button id="backBtn" class="icon-btn" style="display: none;" title="戻る" aria-label="戻る">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <h1 id="headerTitle" class="app-title">歌詞ライブラリ</h1>
+        <h1 id="headerTitle" class="app-title">Library</h1>
       </div>
       <div class="header-right">
         <button id="menuBtn" class="icon-btn" title="カテゴリ一覧" aria-label="カテゴリ一覧">
@@ -829,6 +829,9 @@
     let currentDetailItem = null;
     let editingId = null;
 
+    // 初期History Stateの準備
+    history.replaceState({ page: 'list' }, '');
+
     const dbReq = indexedDB.open('LyricCollectionDB', 1);
 
     dbReq.onupgradeneeded = (e) => {
@@ -869,15 +872,51 @@
       document.getElementById('formDeleteBtn').style.display = 'none';
     }
 
-    function switchToListPage() {
-      navListPage.classList.add('active');
-      navAddPage.classList.remove('active');
-      listPage.classList.add('active');
-      addPage.classList.remove('active');
-      detailPage.classList.remove('active');
-      backBtn.style.display = 'none';
-      headerTitle.textContent = '歌詞ライブラリ';
-      renderLyricsList(searchInput.value);
+    // 画面切り替え（表示制御のみ）
+    function applyPageUI(pageName) {
+      window.scrollTo(0, 0); // スクロール位置を一番上へリセット
+
+      if (pageName === 'list') {
+        navListPage.classList.add('active');
+        navAddPage.classList.remove('active');
+        listPage.classList.add('active');
+        addPage.classList.remove('active');
+        detailPage.classList.remove('active');
+        backBtn.style.display = 'none';
+        headerTitle.textContent = 'Library';
+        renderLyricsList(searchInput.value);
+      } else if (pageName === 'add') {
+        navAddPage.classList.add('active');
+        navListPage.classList.remove('active');
+        addPage.classList.add('active');
+        listPage.classList.remove('active');
+        detailPage.classList.remove('active');
+        backBtn.style.display = 'none';
+        headerTitle.textContent = 'New Song';
+      } else if (pageName === 'edit') {
+        detailPage.classList.remove('active');
+        addPage.classList.add('active');
+        listPage.classList.remove('active');
+        navListPage.classList.remove('active');
+        navAddPage.classList.remove('active');
+        backBtn.style.display = 'flex';
+        headerTitle.textContent = 'Edit Song';
+      } else if (pageName === 'detail') {
+        listPage.classList.remove('active');
+        addPage.classList.remove('active');
+        detailPage.classList.add('active');
+        navListPage.classList.remove('active');
+        navAddPage.classList.remove('active');
+        backBtn.style.display = 'flex';
+        headerTitle.textContent = 'Lyrics';
+      }
+    }
+
+    function switchToListPage(pushHistory = true) {
+      if (pushHistory && history.state?.page !== 'list') {
+        history.pushState({ page: 'list' }, '');
+      }
+      applyPageUI('list');
     }
 
     function filterByKeyword(keyword) {
@@ -892,16 +931,29 @@
 
     navAddPage.addEventListener('click', () => {
       resetForm();
-      navAddPage.classList.add('active');
-      navListPage.classList.remove('active');
-      addPage.classList.add('active');
-      listPage.classList.remove('active');
-      detailPage.classList.remove('active');
-      backBtn.style.display = 'none';
-      headerTitle.textContent = '歌詞の新規登録';
+      if (history.state?.page !== 'add') {
+        history.pushState({ page: 'add' }, '');
+      }
+      applyPageUI('add');
     });
 
-    backBtn.addEventListener('click', switchToListPage);
+    backBtn.addEventListener('click', () => {
+      history.back(); // ブラウザバックで前の画面に戻る
+    });
+
+    // ブラウザの「戻る」「進む」（左フリック等）の検知処理
+    window.addEventListener('popstate', (e) => {
+      const state = e.state;
+      if (!state || state.page === 'list') {
+        applyPageUI('list');
+      } else if (state.page === 'add') {
+        applyPageUI('add');
+      } else if (state.page === 'detail' && state.item) {
+        openDetailPage(state.item, false);
+      } else if (state.page === 'edit') {
+        applyPageUI('edit');
+      }
+    });
 
     menuBtn.addEventListener('click', () => {
       buildCategoryDrawer();
@@ -1042,10 +1094,10 @@
       document.getElementById('saveSubmitBtn').textContent = '変更を保存する';
       document.getElementById('formDeleteBtn').style.display = 'block';
 
-      detailPage.classList.remove('active');
-      addPage.classList.add('active');
-      headerTitle.textContent = '歌詞の編集';
-      backBtn.style.display = 'flex';
+      if (history.state?.page !== 'edit') {
+        history.pushState({ page: 'edit' }, '');
+      }
+      applyPageUI('edit');
     });
 
     document.getElementById('formDeleteBtn').addEventListener('click', () => {
@@ -1118,7 +1170,7 @@
             `;
 
             card.addEventListener('click', () => {
-              openDetailPage(item);
+              openDetailPage(item, true);
             });
 
             lyricList.appendChild(card);
@@ -1127,7 +1179,7 @@
       };
     }
 
-    function openDetailPage(item) {
+    function openDetailPage(item, pushHistory = true) {
       currentDetailItem = item;
 
       document.getElementById('detailBadge').textContent = item.songType;
@@ -1169,15 +1221,11 @@
         });
       }
 
-      listPage.classList.remove('active');
-      addPage.classList.remove('active');
-      detailPage.classList.add('active');
+      if (pushHistory) {
+        history.pushState({ page: 'detail', item: item }, '');
+      }
 
-      navListPage.classList.remove('active');
-      navAddPage.classList.remove('active');
-
-      backBtn.style.display = 'flex';
-      headerTitle.textContent = '歌詞の閲覧';
+      applyPageUI('detail');
     }
 
     function createChip(text, categoryLabel, iconSvg) {
