@@ -23,7 +23,7 @@
       --accent: #0a84ff;
       --accent-badge: rgba(10, 132, 255, 0.18);
       --danger: #ff453a;
-    }
+    }scri
 
     * {
       box-sizing: border-box;
@@ -1365,6 +1365,29 @@
           .catch((err) => console.log('ServiceWorker 登録失敗:', err));
       });
     }
+    // --- 起動時ランダム効果音再生 ---
+function playRandomStartSound() {
+  // 1〜5の数字をランダムで生成
+  const randomNum = Math.floor(Math.random() * 5) + 1;
+  const audio = new Audio(`./start${randomNum}.wav`);
+  
+  // 音量を少し調整したい場合はこちら（0.0〜1.0）
+  audio.volume = 0.6;
+
+  audio.play().catch(() => {
+    // 自動再生がブロックされた場合、最初の画面タップ時に鳴らす保険処理
+    const playOnFirstTouch = () => {
+      audio.play();
+      document.removeEventListener('click', playOnFirstTouch);
+      document.removeEventListener('touchstart', playOnFirstTouch);
+    };
+    document.addEventListener('click', playOnFirstTouch);
+    document.addEventListener('touchstart', playOnFirstTouch);
+  });
+}
+
+// アプリ起動時に呼び出し
+window.addEventListener('DOMContentLoaded', playRandomStartSound);
   </script>
 
 </body>
