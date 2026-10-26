@@ -1,10 +1,15 @@
 const CACHE_NAME = 'lyric-collection-v3'; // ★更新時はここを v2, v3 と上げていきます
 const ASSETS = [
-  './',
+'./',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './start1.wav',
+  './start2.wav',
+  './start3.wav',
+  './start4.wav',
+  './start5.wav'
 ];
 
 // インストール時：ファイルをキャッシュ ＋ 即座に適用準備
