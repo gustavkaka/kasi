@@ -23,7 +23,7 @@
       --accent: #0a84ff;
       --accent-badge: rgba(10, 132, 255, 0.18);
       --danger: #ff453a;
-    }scri
+    }
 
     * {
       box-sizing: border-box;
@@ -828,6 +828,9 @@
     let db;
     let currentDetailItem = null;
     let editingId = null;
+    let activeFilter = null; // { field: 'brandName', value: 'Littlewitch' } 形式の厳密フィルター
+
+    const DEFAULT_SEARCH_PLACEHOLDER = "曲名・作品名・歌手・ブランドで検索...";
 
     // 初期History Stateの準備
     history.replaceState({ page: 'list' }, '');
@@ -858,6 +861,16 @@
     const closeDrawerBtn = document.getElementById('closeDrawerBtn');
     const searchInput = document.getElementById('searchInput');
 
+    function getFieldLabel(field) {
+      switch(field) {
+        case 'artistName': return '歌手';
+        case 'gameTitle': return '作品';
+        case 'brandName': return 'ブランド';
+        case 'songType': return '種別';
+        default: return '絞り込み';
+      }
+    }
+
     function resetForm() {
       editingId = null;
       document.getElementById('lyricForm').reset();
@@ -874,7 +887,7 @@
 
     // 画面切り替え（表示制御のみ）
     function applyPageUI(pageName) {
-      window.scrollTo(0, 0); // スクロール位置を一番上へリセット
+      window.scrollTo(0, 0);
 
       if (pageName === 'list') {
         navListPage.classList.add('active');
@@ -884,7 +897,7 @@
         detailPage.classList.remove('active');
         backBtn.style.display = 'none';
         headerTitle.textContent = 'Library';
-        renderLyricsList(searchInput.value);
+        renderLyricsList();
       } else if (pageName === 'add') {
         navAddPage.classList.add('active');
         navListPage.classList.remove('active');
@@ -919,13 +932,18 @@
       applyPageUI('list');
     }
 
-    function filterByKeyword(keyword) {
-      searchInput.value = keyword;
+    // タグ/チップからの厳密絞り込み（対象フィールドのみ完全一致）
+    function filterByExactTag(field, value) {
+      activeFilter = { field, value };
+      searchInput.value = '';
+      searchInput.placeholder = `[${getFieldLabel(field)}: ${value}] で絞り込み中...`;
       switchToListPage();
     }
 
     navListPage.addEventListener('click', () => {
+      activeFilter = null;
       searchInput.value = '';
+      searchInput.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
       switchToListPage();
     });
 
@@ -938,7 +956,7 @@
     });
 
     backBtn.addEventListener('click', () => {
-      history.back(); // ブラウザバックで前の画面に戻る
+      history.back();
     });
 
     // ブラウザの「戻る」「進む」（左フリック等）の検知処理
@@ -1118,7 +1136,7 @@
     const lyricList = document.getElementById('lyricList');
     const emptyState = document.getElementById('emptyState');
 
-    function renderLyricsList(query = '') {
+    function renderLyricsList() {
       if (!db) return;
 
       const tx = db.transaction('lyrics', 'readonly');
@@ -1127,15 +1145,25 @@
 
       req.onsuccess = () => {
         let lyrics = req.result.sort((a, b) => b.createdAt - a.createdAt);
+        const query = searchInput.value.trim();
 
-        if (query.trim() !== '') {
+        // 1. タグタップ時の厳密フィルター（完全一致）
+        if (activeFilter) {
+          const targetVal = activeFilter.value.toLowerCase();
+          lyrics = lyrics.filter(item => {
+            const val = (item[activeFilter.field] || '').toLowerCase();
+            return val === targetVal;
+          });
+        }
+        // 2. 検索窓手入力時のフリーワード検索（あいまい部分一致）
+        else if (query !== '') {
           const q = query.toLowerCase();
           lyrics = lyrics.filter(item => 
-            item.songTitle.toLowerCase().includes(q) ||
-            item.gameTitle.toLowerCase().includes(q) ||
-            item.brandName.toLowerCase().includes(q) ||
-            item.artistName.toLowerCase().includes(q) ||
-            item.songType.toLowerCase().includes(q)
+            (item.songTitle || '').toLowerCase().includes(q) ||
+            (item.gameTitle || '').toLowerCase().includes(q) ||
+            (item.brandName || '').toLowerCase().includes(q) ||
+            (item.artistName || '').toLowerCase().includes(q) ||
+            (item.songType || '').toLowerCase().includes(q)
           );
         }
 
@@ -1189,21 +1217,21 @@
       chipsRow.innerHTML = '';
 
       if (item.artistName) {
-        const chip = createChip(item.artistName, '歌手', `
+        const chip = createChip(item.artistName, 'artistName', '歌手', `
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         `);
         chipsRow.appendChild(chip);
       }
 
       if (item.gameTitle) {
-        const chip = createChip(item.gameTitle, '作品', `
+        const chip = createChip(item.gameTitle, 'gameTitle', '作品', `
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4"/><path d="M8 10v4"/><circle cx="15" cy="11" r="1"/><circle cx="18" cy="13" r="1"/></svg>
         `);
         chipsRow.appendChild(chip);
       }
 
       if (item.brandName) {
-        const chip = createChip(item.brandName, 'ブランド', `
+        const chip = createChip(item.brandName, 'brandName', 'ブランド', `
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
         `);
         chipsRow.appendChild(chip);
@@ -1228,13 +1256,13 @@
       applyPageUI('detail');
     }
 
-    function createChip(text, categoryLabel, iconSvg) {
+    function createChip(text, fieldName, categoryLabel, iconSvg) {
       const chip = document.createElement('div');
       chip.className = 'meta-chip';
       chip.innerHTML = `${iconSvg} <span>${text}</span>`;
-      chip.title = `${categoryLabel}: ${text} で検索`;
+      chip.title = `${categoryLabel}: ${text} で絞り込み`;
       chip.addEventListener('click', () => {
-        filterByKeyword(text);
+        filterByExactTag(fieldName, text);
       });
       return chip;
     }
@@ -1261,14 +1289,14 @@
           if (item.songType) types[item.songType] = (types[item.songType] || 0) + 1;
         });
 
-        renderTagGroup('artistTags', artists);
-        renderTagGroup('gameTags', games);
-        renderTagGroup('brandTags', brands);
-        renderTagGroup('typeTags', types);
+        renderTagGroup('artistTags', 'artistName', artists);
+        renderTagGroup('gameTags', 'gameTitle', games);
+        renderTagGroup('brandTags', 'brandName', brands);
+        renderTagGroup('typeTags', 'songType', types);
       };
     }
 
-    function renderTagGroup(containerId, dataMap) {
+    function renderTagGroup(containerId, fieldName, dataMap) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
 
@@ -1284,7 +1312,7 @@
         tag.innerHTML = `<span>${key}</span> <span class="tag-count">${dataMap[key]}</span>`;
         tag.addEventListener('click', () => {
           drawerOverlay.classList.remove('active');
-          filterByKeyword(key);
+          filterByExactTag(fieldName, key);
         });
         container.appendChild(tag);
       });
@@ -1353,8 +1381,13 @@
       e.target.value = '';
     });
 
-    searchInput.addEventListener('input', (e) => {
-      renderLyricsList(e.target.value);
+    // 検索窓への入力イベント（手入力時はタグ絞り込み解除）
+    searchInput.addEventListener('input', () => {
+      if (activeFilter) {
+        activeFilter = null;
+        searchInput.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
+      }
+      renderLyricsList();
     });
 
     // PWA Service Worker 登録処理
@@ -1365,29 +1398,25 @@
           .catch((err) => console.log('ServiceWorker 登録失敗:', err));
       });
     }
+
     // --- 起動時ランダム効果音再生 ---
-function playRandomStartSound() {
-  // 1〜5の数字をランダムで生成
-  const randomNum = Math.floor(Math.random() * 5) + 1;
-  const audio = new Audio(`./start${randomNum}.wav`);
-  
-  // 音量を少し調整したい場合はこちら（0.0〜1.0）
-  audio.volume = 0.6;
+    function playRandomStartSound() {
+      const randomNum = Math.floor(Math.random() * 5) + 1;
+      const audio = new Audio(`./start${randomNum}.wav`);
+      audio.volume = 0.6;
 
-  audio.play().catch(() => {
-    // 自動再生がブロックされた場合、最初の画面タップ時に鳴らす保険処理
-    const playOnFirstTouch = () => {
-      audio.play();
-      document.removeEventListener('click', playOnFirstTouch);
-      document.removeEventListener('touchstart', playOnFirstTouch);
-    };
-    document.addEventListener('click', playOnFirstTouch);
-    document.addEventListener('touchstart', playOnFirstTouch);
-  });
-}
+      audio.play().catch(() => {
+        const playOnFirstTouch = () => {
+          audio.play();
+          document.removeEventListener('click', playOnFirstTouch);
+          document.removeEventListener('touchstart', playOnFirstTouch);
+        };
+        document.addEventListener('click', playOnFirstTouch);
+        document.addEventListener('touchstart', playOnFirstTouch);
+      });
+    }
 
-// アプリ起動時に呼び出し
-window.addEventListener('DOMContentLoaded', playRandomStartSound);
+    window.addEventListener('DOMContentLoaded', playRandomStartSound);
   </script>
 
 </body>
