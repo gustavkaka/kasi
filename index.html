@@ -2,12 +2,15 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Lyric Collection</title>
 
   <!-- PWA設定 -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#09090a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icon-192.png">
 
   <style>
@@ -500,7 +503,8 @@
       padding: 18px 12px;
       display: flex;
       flex-direction: column;
-      gap: 1.5em;
+      /* ブロック同士の間 = ブロック内の改行（line-height 1.85）の1.5倍。歌詞の文字サイズに連動させる */
+      gap: calc(var(--lyric-font-size, 1rem) * 1.85 * 1.5);
     }
 
     .lyric-display-block {
@@ -725,6 +729,95 @@
     .sound-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .sound-row-label { font-size: 0.8rem; color: var(--text-sub); font-weight: 600; }
     .sound-toggle-btn { flex: 0 0 auto; min-width: 72px; }
+    /* --- アプリ感のための刷新（v2） --- */
+    html { overscroll-behavior: none; }
+    body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+    header, .bottom-nav, .lyric-card, .category-tag, .meta-chip, button { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .lyrics-stage, .card-preview { -webkit-user-select: text; user-select: text; }
+    header { padding-top: calc(14px + env(safe-area-inset-top)); }
+    .app-container { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+    .bottom-nav { height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); }
+    .page.active { animation: pageIn 0.22s ease both; }
+    @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .lyric-list { gap: 10px; }
+    .lyric-card {
+      flex-direction: row; align-items: flex-start; gap: 12px;
+      border-radius: 16px; padding: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .card-avatar {
+      width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 1.15rem; font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .card-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .card-fav {
+      background: transparent; border: none; color: var(--text-sub);
+      font-size: 1.15rem; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0;
+    }
+    .card-fav.active { color: #ff375f; }
+    .card-badge[data-type="ED"], .detail-badge-pill[data-type="ED"] { background: rgba(191,90,242,0.18); color: #bf5af2; }
+    .card-badge[data-type="挿入歌"], .detail-badge-pill[data-type="挿入歌"] { background: rgba(48,209,88,0.16); color: #30d158; }
+    .card-badge[data-type="キャラソン"], .detail-badge-pill[data-type="キャラソン"] { background: rgba(255,55,95,0.16); color: #ff6482; }
+    .card-badge[data-type="イメージソング"], .detail-badge-pill[data-type="イメージソング"] { background: rgba(255,159,10,0.16); color: #ff9f0a; }
+    .card-badge[data-type="その他"], .detail-badge-pill[data-type="その他"] { background: rgba(152,152,157,0.18); color: #98989d; }
+    .stats-bar {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
+      padding: 8px 12px; font-size: 0.78rem; color: var(--text-sub); text-align: center; letter-spacing: 0.3px;
+    }
+    .sort-row { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .sort-btn {
+      background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-sub);
+      border-radius: 20px; padding: 6px 12px; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .sort-btn.active { color: var(--text-main); background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); }
+    .sort-btn.fav-active { color: #ff6482; border-color: rgba(255,55,95,0.5); }
+    .sort-spacer { flex: 1; }
+    .fab {
+      position: fixed; right: max(16px, calc(50% - 224px)); bottom: calc(80px + env(safe-area-inset-bottom));
+      width: 56px; height: 56px; border-radius: 50%; border: none; z-index: 60;
+      background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 24px rgba(10,132,255,0.45); cursor: pointer; transition: transform 0.12s ease;
+    }
+    .fab:active { transform: scale(0.9); }
+    .detail-actions { display: flex; gap: 8px; }
+    .fav-btn { font-size: 1.05rem; }
+    .fav-btn.fav-active { color: #ff375f; border-color: rgba(255,55,95,0.5); }
+    .detail-artwork {
+      width: 64px; height: 64px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 1.7rem; font-weight: 800; box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .toast {
+      position: fixed; left: 50%; transform: translateX(-50%) translateY(10px);
+      bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 200;
+      background: rgba(44,44,46,0.96); color: var(--text-main); border: 1px solid var(--card-border);
+      padding: 11px 18px; border-radius: 24px; font-size: 0.85rem; font-weight: 600;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); white-space: nowrap; max-width: 92vw;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.22s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-sheet {
+      width: 100%; max-width: 480px; background: #17171a; border-top: 1px solid var(--card-border);
+      border-radius: 20px 20px 0 0; padding: 22px 20px calc(20px + env(safe-area-inset-bottom));
+      transform: translateY(24px); transition: transform 0.25s cubic-bezier(0.16,1,0.3,1);
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .modal-overlay.active .modal-sheet { transform: translateY(0); }
+    .modal-msg { font-size: 0.92rem; line-height: 1.6; white-space: pre-line; color: var(--text-main); }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btn {
+      flex: 1; padding: 13px; border-radius: 14px; border: 1px solid var(--card-border);
+      background: var(--card-bg); color: var(--text-main); font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
+    .modal-btn.primary { background: var(--text-main); color: var(--bg-color); border: none; }
+    .modal-btn.primary.danger { background: var(--danger); color: #fff; }
   </style>
 </head>
 <body>
@@ -758,6 +851,14 @@
         <button type="button" id="filterClearBtn" class="filter-clear-btn">✕ 解除</button>
       </div>
       <div id="resultMeta" class="result-meta" style="display: none;"></div>
+      <div id="statsBar" class="stats-bar" style="display: none;"></div>
+      <div class="sort-row">
+        <button type="button" class="sort-btn active" data-sort="new">新着順</button>
+        <button type="button" class="sort-btn" data-sort="title">曲名順</button>
+        <button type="button" class="sort-btn" data-sort="artist">歌手順</button>
+        <span class="sort-spacer"></span>
+        <button type="button" id="favFilterBtn" class="sort-btn">♡ お気に入り</button>
+      </div>
 
       <div id="emptyState" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -828,10 +929,15 @@
       <div class="detail-hero">
         <div class="detail-top-bar">
           <span id="detailBadge" class="detail-badge-pill"></span>
+          <div class="detail-actions">
+          <button id="detailFavBtn" class="icon-btn fav-btn" title="お気に入り" aria-label="お気に入り">♡</button>
           <button id="editBtn" class="icon-btn" title="編集" aria-label="編集">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           </button>
+          </div>
         </div>
+
+        <div id="detailArtwork" class="detail-artwork">♪</div>
 
         <h2 id="detailTitle" class="detail-song-title"></h2>
 
@@ -902,6 +1008,22 @@
       </div>
     </div>
 
+    <button id="fabAdd" class="fab" style="display: none;" aria-label="歌詞を追加">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="appModal" class="modal-overlay">
+      <div class="modal-sheet">
+        <div id="modalMsg" class="modal-msg"></div>
+        <div class="modal-btns">
+          <button type="button" id="modalCancel" class="modal-btn">キャンセル</button>
+          <button type="button" id="modalOk" class="modal-btn primary">OK</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 下部ナビゲーション -->
     <nav class="bottom-nav">
       <button id="navListPage" class="nav-item active">
@@ -942,6 +1064,66 @@
     function lyricDedupKey(item) {
       const artists = getArtistsArray(item).map(a => a.trim().toLowerCase()).sort().join('/');
       return [(item.songTitle || '').trim().toLowerCase(), (item.gameTitle || '').trim().toLowerCase(), artists].join('|');
+    }
+
+    let sortMode = 'new';
+    try { sortMode = localStorage.getItem('lyricSortMode') || 'new'; } catch (e) {}
+    let favOnly = false;
+
+    function buzz(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch (e) {} }
+    function hashHue(str) { let h = 0; const t = String(str || ''); for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) % 360; return h; }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(showToast._tm);
+      showToast._tm = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    let modalResolver = null;
+    function appConfirm(msg, opts) {
+      opts = opts || {};
+      return new Promise((resolve) => {
+        const ov = document.getElementById('appModal');
+        if (!ov) { resolve(confirm(msg)); return; }
+        modalResolver = resolve;
+        document.getElementById('modalMsg').textContent = msg;
+        const ok = document.getElementById('modalOk');
+        ok.textContent = opts.okText || 'OK';
+        ok.classList.toggle('danger', !!opts.danger);
+        const cancel = document.getElementById('modalCancel');
+        cancel.style.display = opts.alertOnly ? 'none' : 'block';
+        cancel.textContent = opts.cancelText || 'キャンセル';
+        ov.classList.add('active');
+      });
+    }
+    function appAlert(msg) { return appConfirm(msg, { alertOnly: true, okText: '閉じる' }); }
+    function closeModal(result) {
+      const ov = document.getElementById('appModal');
+      if (ov) ov.classList.remove('active');
+      if (modalResolver) { const r = modalResolver; modalResolver = null; r(result); }
+    }
+
+    function updateDetailFavBtn() {
+      const b = document.getElementById('detailFavBtn');
+      if (!b || !currentDetailItem) return;
+      b.classList.toggle('fav-active', !!currentDetailItem.favorite);
+      b.textContent = currentDetailItem.favorite ? '♥' : '♡';
+    }
+
+    function toggleFavorite(item) {
+      if (!db || !item) return;
+      item.favorite = !item.favorite;
+      const tx = db.transaction('lyrics', 'readwrite');
+      tx.objectStore('lyrics').put(item);
+      tx.oncomplete = () => {
+        buzz(10);
+        showToast(item.favorite ? 'お気に入りに追加しました' : 'お気に入りから外しました');
+        if (currentDetailItem && currentDetailItem.id === item.id) updateDetailFavBtn();
+        renderLyricsList();
+      };
     }
 
     function updateLastExportNote() {
@@ -1082,6 +1264,8 @@
     // 画面切り替え（表示制御のみ）
     function applyPageUI(pageName) {
       window.scrollTo(0, 0);
+      const fabEl = document.getElementById('fabAdd');
+      if (fabEl) fabEl.style.display = pageName === 'list' ? 'flex' : 'none';
 
       if (pageName === 'list') {
         navListPage.classList.add('active');
@@ -1270,18 +1454,22 @@
       if (editingId) lyricData.id = editingId;
 
       // 重複チェック（編集中の自分自身は除く）
-      loadAllLyrics().then(all => {
+      loadAllLyrics().then(async (all) => {
         const key = lyricDedupKey(lyricData);
         const dup = all.find(it => it.id !== editingId && lyricDedupKey(it) === key);
-        if (dup && !confirm('同じ曲名・作品名・歌手の歌詞が既に登録されています。\nそれでも保存しますか？')) return;
-
+        if (dup) {
+          const ok = await appConfirm('同じ曲名・作品名・歌手の歌詞が既に登録されています。\nそれでも保存しますか？', { okText: '保存する' });
+          if (!ok) return;
+        }
+        const wasEditing = !!editingId;
         const tx = db.transaction('lyrics', 'readwrite');
         const store = tx.objectStore('lyrics');
         if (editingId) { store.put(lyricData); } else { store.add(lyricData); }
-        tx.oncomplete = () => { invalidateLyricsCache(); resetForm(); switchToListPage(); };
-        tx.onerror = () => alert('保存に失敗しました。');
+        tx.oncomplete = () => { invalidateLyricsCache(); resetForm(); switchToListPage(); buzz(14); showToast(wasEditing ? '変更を保存しました' : '歌詞を保存しました'); };
+        tx.onerror = () => appAlert('保存に失敗しました。');
       });
     });
+
 
     document.getElementById('editBtn').addEventListener('click', () => {
       if (!currentDetailItem) return;
@@ -1318,18 +1506,20 @@
     document.getElementById('formDeleteBtn').addEventListener('click', () => {
       if (!editingId || !db) return;
 
-      if (confirm('この歌詞を削除してもよろしいですか？')) {
+      appConfirm('この歌詞を削除してもよろしいですか？', { okText: '削除する', danger: true }).then((ok) => {
+        if (!ok) return;
         const tx = db.transaction('lyrics', 'readwrite');
         const store = tx.objectStore('lyrics');
         store.delete(editingId);
-
         tx.oncomplete = () => {
           invalidateLyricsCache();
           resetForm();
           switchToListPage();
+          showToast('削除しました');
         };
-      }
+      });
     });
+
 
     const lyricList = document.getElementById('lyricList');
     const emptyState = document.getElementById('emptyState');
@@ -1341,7 +1531,14 @@
     }
 
     function renderLyricsFromCache() {
-      let lyrics = [...(allLyricsCache || [])].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      let lyrics = [...(allLyricsCache || [])];
+      if (sortMode === 'title') {
+        lyrics.sort((a, b) => (a.songTitle || '').localeCompare(b.songTitle || '', 'ja'));
+      } else if (sortMode === 'artist') {
+        lyrics.sort((a, b) => (getArtistsArray(a)[0] || '').localeCompare(getArtistsArray(b)[0] || '', 'ja') || (a.songTitle || '').localeCompare(b.songTitle || '', 'ja'));
+      } else {
+        lyrics.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      }
       const query = searchInput.value.trim();
 
       if (activeFilter) {
@@ -1363,6 +1560,21 @@
             (item.songType || '').toLowerCase().includes(q) ||
             (item.blocks || []).join('\n').toLowerCase().includes(q);
         });
+      }
+
+      if (favOnly) lyrics = lyrics.filter(item => item.favorite);
+
+      const statsBar = document.getElementById('statsBar');
+      if (statsBar) {
+        const allItems = allLyricsCache || [];
+        if (allItems.length > 0) {
+          const aSet = new Set(); const gSet = new Set();
+          allItems.forEach(it => { getArtistsArray(it).forEach(x => aSet.add(x)); if (it.gameTitle) gSet.add(it.gameTitle); });
+          statsBar.style.display = 'block';
+          statsBar.textContent = `全${allItems.length}曲 ・ 歌手${aSet.size} ・ 作品${gSet.size}`;
+        } else {
+          statsBar.style.display = 'none';
+        }
       }
 
       // 絞り込みバーの表示
@@ -1391,7 +1603,10 @@
       if (totalMatched === 0) {
         emptyState.style.display = 'flex';
         lyricList.style.display = 'none';
-        if (activeFilter || query) {
+        if (favOnly && !activeFilter && !query) {
+          if (emptyTitle) emptyTitle.textContent = 'お気に入りはまだありません';
+          if (emptyDesc) emptyDesc.textContent = 'カードの ♡ から追加できます。';
+        } else if (activeFilter || query) {
           if (emptyTitle) emptyTitle.textContent = '見つかりませんでした';
           if (emptyDesc) emptyDesc.textContent = '検索や絞り込みの条件を変えてみてください。';
         } else {
@@ -1409,6 +1624,15 @@
         const card = document.createElement('div');
         card.className = 'lyric-card';
 
+        const hue = hashHue((item.songTitle || '') + (item.gameTitle || ''));
+        const avatar = document.createElement('div');
+        avatar.className = 'card-avatar';
+        avatar.style.background = `linear-gradient(135deg, hsl(${hue} 70% 45%), hsl(${(hue + 40) % 360} 70% 30%))`;
+        avatar.textContent = (item.songTitle || '♪').trim().charAt(0) || '♪';
+
+        const content = document.createElement('div');
+        content.className = 'card-content';
+
         let metaText = item.gameTitle;
         if (item.brandName) metaText = metaText ? `${metaText} (${item.brandName})` : item.brandName;
 
@@ -1419,6 +1643,7 @@
         gameSpan.textContent = metaText || '作品名未設定';
         const badgeSpan = document.createElement('span');
         badgeSpan.className = 'card-badge';
+        badgeSpan.dataset.type = item.songType || '';
         badgeSpan.textContent = item.songType || '';
         metaRow.appendChild(gameSpan);
         metaRow.appendChild(badgeSpan);
@@ -1432,19 +1657,31 @@
         const itemArtists = getArtistsArray(item);
         artistDiv.textContent = itemArtists.length > 0 ? itemArtists.join(' / ') : '歌手未設定';
 
-        card.appendChild(metaRow);
-        card.appendChild(titleDiv);
-        card.appendChild(artistDiv);
+        content.appendChild(metaRow);
+        content.appendChild(titleDiv);
+        content.appendChild(artistDiv);
 
         const previewText = item.blocks && item.blocks.length > 0 ? item.blocks[0] : '';
         if (previewText) {
           const previewDiv = document.createElement('div');
           previewDiv.className = 'card-preview';
           previewDiv.textContent = previewText;
-          card.appendChild(previewDiv);
+          content.appendChild(previewDiv);
         }
 
+        const favBtn = document.createElement('button');
+        favBtn.type = 'button';
+        favBtn.className = 'card-fav' + (item.favorite ? ' active' : '');
+        favBtn.textContent = item.favorite ? '♥' : '♡';
+        favBtn.setAttribute('aria-label', 'お気に入り');
+        favBtn.addEventListener('click', (ev) => { ev.stopPropagation(); toggleFavorite(item); });
+
+        card.appendChild(avatar);
+        card.appendChild(content);
+        card.appendChild(favBtn);
+
         card.addEventListener('click', () => { openDetailPage(item, true); });
+
         lyricList.appendChild(card);
       });
 
@@ -1461,7 +1698,16 @@
     function openDetailPage(item, pushHistory = true) {
       currentDetailItem = item;
 
-      document.getElementById('detailBadge').textContent = item.songType;
+      const badgeEl = document.getElementById('detailBadge');
+      badgeEl.textContent = item.songType;
+      badgeEl.dataset.type = item.songType || '';
+      const artEl = document.getElementById('detailArtwork');
+      if (artEl) {
+        const hueD = hashHue((item.songTitle || '') + (item.gameTitle || ''));
+        artEl.style.background = `linear-gradient(135deg, hsl(${hueD} 70% 45%), hsl(${(hueD + 40) % 360} 70% 30%))`;
+        artEl.textContent = (item.songTitle || '♪').trim().charAt(0) || '♪';
+      }
+      updateDetailFavBtn();
       document.getElementById('detailTitle').textContent = item.songTitle;
 
       const chipsRow = document.getElementById('detailChipsRow');
@@ -1606,8 +1852,8 @@
       reader.onload = (event) => {
         let parsed;
         try { parsed = JSON.parse(event.target.result); }
-        catch (err) { alert('ファイルの読み込みに失敗しました。JSON形式をご確認ください。'); return; }
-        if (!Array.isArray(parsed)) { alert('正しいバックアップファイルではありません。'); return; }
+        catch (err) { appAlert('ファイルの読み込みに失敗しました。JSON形式をご確認ください。'); return; }
+        if (!Array.isArray(parsed)) { appAlert('正しいバックアップファイルではありません。'); return; }
 
         // 検証と正規化（壊れた項目は捨てる／古い形式 artistName にも対応）
         const valid = []; let invalidCount = 0;
@@ -1629,13 +1875,14 @@
             artists,
             artistName: artists.join(' / '),
             blocks,
-            createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now()
+            createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
+            favorite: raw.favorite === true
           };
           if (typeof raw.updatedAt === 'number') item.updatedAt = raw.updatedAt;
           valid.push(item);
         });
 
-        loadAllLyrics().then(existing => {
+        loadAllLyrics().then(async (existing) => {
           const seen = new Set(existing.map(it => lyricDedupKey(it)));
           const toAdd = []; let dupCount = 0;
           valid.forEach(item => {
@@ -1645,21 +1892,22 @@
           });
 
           if (toAdd.length === 0) {
-            alert(`追加できる新しい歌詞はありませんでした。\n（重複 ${dupCount} 件／無効 ${invalidCount} 件はスキップ）`);
+            appAlert(`追加できる新しい歌詞はありませんでした。\n（重複 ${dupCount} 件／無効 ${invalidCount} 件はスキップ）`);
             return;
           }
-          if (!confirm(`${toAdd.length} 件の歌詞を追加します。\n（重複 ${dupCount} 件／無効 ${invalidCount} 件はスキップ）\nよろしいですか？`)) return;
+          const okImport = await appConfirm(`${toAdd.length} 件の歌詞を追加します。\n（重複 ${dupCount} 件／無効 ${invalidCount} 件はスキップ）\nよろしいですか？`, { okText: '追加する' });
+          if (!okImport) return;
 
           const tx = db.transaction('lyrics', 'readwrite');
           const store = tx.objectStore('lyrics');
           toAdd.forEach(item => store.add(item));
           tx.oncomplete = () => {
             invalidateLyricsCache();
-            alert(`${toAdd.length} 件の歌詞を取り込みました。`);
+            showToast(`${toAdd.length} 件の歌詞を取り込みました`);
             drawerOverlay.classList.remove('active');
             switchToListPage();
           };
-          tx.onerror = () => alert('取り込みに失敗しました。');
+          tx.onerror = () => appAlert('取り込みに失敗しました。');
         });
       };
       reader.readAsText(file);
@@ -1707,6 +1955,48 @@
       });
     });
     applyFontLevel(localStorage.getItem('lyricFontLevel') || 'normal');
+
+    // モーダルのボタン
+    document.getElementById('modalOk').addEventListener('click', () => closeModal(true));
+    document.getElementById('modalCancel').addEventListener('click', () => closeModal(false));
+    document.getElementById('appModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(false); });
+
+    // ＋ボタン（FAB）
+    const fabBtn = document.getElementById('fabAdd');
+    if (fabBtn) {
+      fabBtn.addEventListener('click', () => { buzz(8); navAddPage.click(); });
+      fabBtn.style.display = 'flex'; // 起動直後は一覧ページなので表示しておく
+    }
+
+    // 並び替え
+    document.querySelectorAll('[data-sort]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sort === sortMode);
+      btn.addEventListener('click', () => {
+        sortMode = btn.dataset.sort;
+        try { localStorage.setItem('lyricSortMode', sortMode); } catch (e) {}
+        document.querySelectorAll('[data-sort]').forEach(b => b.classList.toggle('active', b === btn));
+        renderLimit = PAGE_SIZE;
+        renderLyricsList();
+      });
+    });
+
+    // お気に入りだけ表示
+    const favFilterBtn = document.getElementById('favFilterBtn');
+    if (favFilterBtn) {
+      favFilterBtn.addEventListener('click', () => {
+        favOnly = !favOnly;
+        favFilterBtn.classList.toggle('fav-active', favOnly);
+        favFilterBtn.textContent = favOnly ? '♥ お気に入り' : '♡ お気に入り';
+        renderLimit = PAGE_SIZE;
+        renderLyricsList();
+      });
+    }
+
+    // 詳細画面のお気に入りボタン
+    const detailFavBtn = document.getElementById('detailFavBtn');
+    if (detailFavBtn) {
+      detailFavBtn.addEventListener('click', () => { if (currentDetailItem) toggleFavorite(currentDetailItem); });
+    }
 
     // PWA Service Worker 登録処理
     if ('serviceWorker' in navigator) {
