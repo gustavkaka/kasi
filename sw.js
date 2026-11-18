@@ -1,10 +1,16 @@
-const CACHE_NAME = 'lyric-collection-v3'; // ★更新時はここを v2, v3 と上げていきます
-const ASSETS = [
-'./',
+const CACHE_NAME = 'lyric-collection-v4'; // ★更新時はここを v5, v6 と上げていきます
+
+// アプリの動作に必須のもの：どれか失敗したらインストール自体を失敗扱いにする
+const CORE_ASSETS = [
+  './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png',
+  './icon-512.png'
+];
+
+// 無くてもアプリは動くもの：1個失敗しても全体を巻き込まないよう、個別にキャッシュする
+const OPTIONAL_ASSETS = [
   './start1.wav',
   './start2.wav',
   './start3.wav',
@@ -12,12 +18,15 @@ const ASSETS = [
   './start5.wav'
 ];
 
-// インストール時：ファイルをキャッシュ ＋ 即座に適用準備
+// インストール時：必須をキャッシュ ＋ 即座に適用準備。任意ファイルは失敗を無視する
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // ★新しいService Workerを待機させずに即時有効化
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(CORE_ASSETS);
+      await Promise.allSettled(
+        OPTIONAL_ASSETS.map((url) => cache.add(url))
+      );
     })
   );
 });
@@ -29,11 +38,11 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            return caches.delete(key); // ★'lyric-collection-v1' などの古いキャッシュだけを削除
+            return caches.delete(key);
           }
         })
       );
-    }).then(() => self.clients.claim()) // ★すぐに新しいSWの制御下に置く
+    }).then(() => self.clients.claim())
   );
 });
 
@@ -44,7 +53,6 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // ネットワークから最新が取れたら、キャッシュも最新に更新しておく
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -54,7 +62,6 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // オフライン等で通信できない場合のみ、キャッシュから読み込む
         return caches.match(event.request);
       })
   );
