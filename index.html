@@ -735,7 +735,7 @@
     header, .bottom-nav, .lyric-card, .category-tag, .meta-chip, button { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     .lyrics-stage, .card-preview { -webkit-user-select: text; user-select: text; }
     header { padding-top: calc(14px + env(safe-area-inset-top)); }
-    .app-container { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+    .app-container { padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
     .bottom-nav { height: calc(64px + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); }
     .page.active { animation: pageIn 0.22s ease both; }
     @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -773,7 +773,7 @@
     .sort-btn.fav-active { color: #ff6482; border-color: rgba(255,55,95,0.5); }
     .sort-spacer { flex: 1; }
     .fab {
-      position: fixed; right: max(16px, calc(50% - 224px)); bottom: calc(80px + env(safe-area-inset-bottom));
+      position: fixed; right: max(16px, calc(50% - 224px)); bottom: calc(24px + env(safe-area-inset-bottom));
       width: 56px; height: 56px; border-radius: 50%; border: none; z-index: 60;
       background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center;
       box-shadow: 0 8px 24px rgba(10,132,255,0.45); cursor: pointer; transition: transform 0.12s ease;
@@ -788,7 +788,7 @@
     }
     .toast {
       position: fixed; left: 50%; transform: translateX(-50%) translateY(10px);
-      bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 200;
+      bottom: calc(100px + env(safe-area-inset-bottom)); z-index: 200;
       background: rgba(44,44,46,0.96); color: var(--text-main); border: 1px solid var(--card-border);
       padding: 11px 18px; border-radius: 24px; font-size: 0.85rem; font-weight: 600;
       opacity: 0; pointer-events: none; transition: opacity 0.25s ease, transform 0.25s ease;
@@ -1024,17 +1024,6 @@
       </div>
     </div>
 
-    <!-- 下部ナビゲーション -->
-    <nav class="bottom-nav">
-      <button id="navListPage" class="nav-item active">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-        一覧
-      </button>
-      <button id="navAddPage" class="nav-item">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        追加
-      </button>
-    </nav>
   </div>
 
   <script>
@@ -1163,8 +1152,26 @@
       renderLyricsList();
     };
 
-    const navListPage = document.getElementById('navListPage');
-    const navAddPage = document.getElementById('navAddPage');
+    // 下部ナビ廃止に伴い、画面遷移はこの2関数へ集約（FAB／ヘッダータイトルから使う）
+    function goToAddPage() {
+      resetForm();
+      if (history.state?.page !== 'add') {
+        history.pushState({ page: 'add' }, '');
+      }
+      applyPageUI('add');
+    }
+    function goHomeReset() {
+      activeFilter = null;
+      favOnly = false;
+      const ffb = document.getElementById('favFilterBtn');
+      if (ffb) { ffb.classList.remove('fav-active'); ffb.textContent = '♡ お気に入り'; }
+      searchInput.value = '';
+      searchInput.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
+      const scb = document.getElementById('searchClearBtn');
+      if (scb) scb.style.display = 'none';
+      renderLimit = PAGE_SIZE;
+      switchToListPage();
+    }
     const listPage = document.getElementById('listPage');
     const addPage = document.getElementById('addPage');
     const detailPage = document.getElementById('detailPage');
@@ -1268,8 +1275,6 @@
       if (fabEl) fabEl.style.display = pageName === 'list' ? 'flex' : 'none';
 
       if (pageName === 'list') {
-        navListPage.classList.add('active');
-        navAddPage.classList.remove('active');
         listPage.classList.add('active');
         addPage.classList.remove('active');
         detailPage.classList.remove('active');
@@ -1277,27 +1282,21 @@
         headerTitle.textContent = 'Library';
         renderLyricsList();
       } else if (pageName === 'add') {
-        navAddPage.classList.add('active');
-        navListPage.classList.remove('active');
         addPage.classList.add('active');
         listPage.classList.remove('active');
         detailPage.classList.remove('active');
-        backBtn.style.display = 'none';
+        backBtn.style.display = 'flex';
         headerTitle.textContent = 'New Song';
       } else if (pageName === 'edit') {
         detailPage.classList.remove('active');
         addPage.classList.add('active');
         listPage.classList.remove('active');
-        navListPage.classList.remove('active');
-        navAddPage.classList.remove('active');
         backBtn.style.display = 'flex';
         headerTitle.textContent = 'Edit Song';
       } else if (pageName === 'detail') {
         listPage.classList.remove('active');
         addPage.classList.remove('active');
         detailPage.classList.add('active');
-        navListPage.classList.remove('active');
-        navAddPage.classList.remove('active');
         backBtn.style.display = 'flex';
         headerTitle.textContent = 'Lyrics';
       }
@@ -1319,20 +1318,10 @@
       switchToListPage();
     }
 
-    navListPage.addEventListener('click', () => {
-      activeFilter = null;
-      searchInput.value = '';
-      searchInput.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
-      switchToListPage();
-    });
-
-    navAddPage.addEventListener('click', () => {
-      resetForm();
-      if (history.state?.page !== 'add') {
-        history.pushState({ page: 'add' }, '');
-      }
-      applyPageUI('add');
-    });
+    // ヘッダーのタイトルをタップ = ホーム（検索・絞り込みをリセットして一覧へ）
+    headerTitle.style.cursor = 'pointer';
+    headerTitle.title = '一覧へ戻る';
+    headerTitle.addEventListener('click', () => { goHomeReset(); });
 
     backBtn.addEventListener('click', () => {
       history.back();
@@ -1964,7 +1953,7 @@
     // ＋ボタン（FAB）
     const fabBtn = document.getElementById('fabAdd');
     if (fabBtn) {
-      fabBtn.addEventListener('click', () => { buzz(8); navAddPage.click(); });
+      fabBtn.addEventListener('click', () => { buzz(8); goToAddPage(); });
       fabBtn.style.display = 'flex'; // 起動直後は一覧ページなので表示しておく
     }
 
