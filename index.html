@@ -13,6 +13,7 @@
   <style>
     /* 全体の基本設定（高級ダークモード） */
     :root {
+      --lyric-font-size: 1rem;
       --bg-color: #09090a;
       --card-bg: rgba(255, 255, 255, 0.03);
       --card-border: rgba(255, 255, 255, 0.08);
@@ -503,8 +504,8 @@
     }
 
     .lyric-display-block {
-      font-size: 0.76rem;
-      line-height: 1.2;
+      font-size: var(--lyric-font-size, 1rem);
+      line-height: 1.85;
       letter-spacing: 0;
       white-space: pre-line;
       color: #f2f2f7;
@@ -692,6 +693,38 @@
     .nav-item svg {
       stroke: currentColor;
     }
+    /* --- 改良版で追加したUI --- */
+    .filter-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      background: var(--accent-badge); border: 1px solid var(--card-border);
+      border-radius: 10px; padding: 8px 12px; font-size: 0.8rem; color: var(--text-main);
+    }
+    .filter-clear-btn {
+      background: transparent; border: none; color: var(--accent);
+      font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap; padding: 2px 4px;
+    }
+    .result-meta { font-size: 0.75rem; color: var(--text-sub); padding: 0 4px; }
+    .show-more-btn {
+      background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-main);
+      padding: 12px; border-radius: 12px; font-size: 0.88rem; font-weight: 600; cursor: pointer; width: 100%;
+    }
+    .search-clear-btn {
+      background: transparent; border: none; color: var(--text-sub);
+      font-size: 1rem; cursor: pointer; padding: 0 2px; line-height: 1; flex-shrink: 0;
+    }
+    .font-controls {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .font-controls-label { font-size: 0.75rem; font-weight: 600; color: var(--text-sub); margin-right: 2px; }
+    .font-btn {
+      background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-sub);
+      border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+    .font-btn.active { color: var(--text-main); border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.1); }
+    .backup-note { font-size: 0.72rem; color: var(--text-sub); line-height: 1.4; }
+    .sound-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .sound-row-label { font-size: 0.8rem; color: var(--text-sub); font-weight: 600; }
+    .sound-toggle-btn { flex: 0 0 auto; min-width: 72px; }
   </style>
 </head>
 <body>
@@ -716,8 +749,15 @@
     <div id="listPage" class="page active">
       <div class="search-box">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#98989d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="曲名・作品名・歌手・ブランドで検索...">
+        <input type="text" id="searchInput" placeholder="曲名・作品名・歌手・ブランド・歌詞で検索...">
+        <button type="button" id="searchClearBtn" class="search-clear-btn" style="display: none;" aria-label="検索をクリア">✕</button>
       </div>
+
+      <div id="filterBar" class="filter-bar" style="display: none;">
+        <span id="filterBarText"></span>
+        <button type="button" id="filterClearBtn" class="filter-clear-btn">✕ 解除</button>
+      </div>
+      <div id="resultMeta" class="result-meta" style="display: none;"></div>
 
       <div id="emptyState" class="empty-state">
         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -798,6 +838,14 @@
         <div id="detailChipsRow" class="detail-chips-row"></div>
       </div>
 
+      <div class="font-controls">
+        <span class="font-controls-label">文字サイズ</span>
+        <button type="button" class="font-btn" data-font-level="small">小</button>
+        <button type="button" class="font-btn" data-font-level="normal">標準</button>
+        <button type="button" class="font-btn" data-font-level="large">大</button>
+        <button type="button" class="font-btn" data-font-level="xlarge">特大</button>
+      </div>
+
       <div id="lyricsStage" class="lyrics-stage"></div>
     </div>
 
@@ -834,6 +882,7 @@
         <!-- バックアップ・復元エリア -->
         <div class="backup-section">
           <div class="category-sec-title">データ管理</div>
+          <div id="lastExportNote" class="backup-note">最終書き出し：未記録</div>
           <div class="backup-btn-group">
             <button id="exportBtn" class="secondary-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -844,6 +893,10 @@
               読み込み
             </button>
             <input type="file" id="importFileInput" accept=".json" style="display: none;">
+          </div>
+          <div class="sound-row">
+            <span class="sound-row-label">起動音</span>
+            <button type="button" id="soundToggleBtn" class="secondary-btn sound-toggle-btn">ON</button>
           </div>
         </div>
       </div>
@@ -867,6 +920,47 @@
     let currentDetailItem = null;
     let editingId = null;
     let activeFilter = null; // { field: 'artists', value: 'KOTOKO' } 形式の厳密フィルター
+    let allLyricsCache = null; // IndexedDBの全件をメモリに保持（検索のたびにDBを読まない）
+    const PAGE_SIZE = 100;
+    let renderLimit = PAGE_SIZE;
+    let searchTimer = null;
+
+    function invalidateLyricsCache() { allLyricsCache = null; }
+
+    function loadAllLyrics() {
+      return new Promise((resolve) => {
+        if (allLyricsCache) { resolve(allLyricsCache); return; }
+        if (!db) { resolve([]); return; }
+        const tx = db.transaction('lyrics', 'readonly');
+        const req = tx.objectStore('lyrics').getAll();
+        req.onsuccess = () => { allLyricsCache = req.result || []; resolve(allLyricsCache); };
+        req.onerror = () => resolve([]);
+      });
+    }
+
+    // 重複判定キー：曲名＋作品名＋歌手（表記ゆれは小文字化して吸収）
+    function lyricDedupKey(item) {
+      const artists = getArtistsArray(item).map(a => a.trim().toLowerCase()).sort().join('/');
+      return [(item.songTitle || '').trim().toLowerCase(), (item.gameTitle || '').trim().toLowerCase(), artists].join('|');
+    }
+
+    function updateLastExportNote() {
+      const el = document.getElementById('lastExportNote');
+      if (!el) return;
+      const v = localStorage.getItem('lyricLastExportAt');
+      el.textContent = v
+        ? `最終書き出し：${new Date(Number(v)).toLocaleDateString('ja-JP')}`
+        : '最終書き出し：未記録（大切な歌詞なので、書き出しをお忘れなく）';
+    }
+
+    const FONT_LEVELS = { small: '0.88rem', normal: '1rem', large: '1.13rem', xlarge: '1.27rem' };
+    function applyFontLevel(level) {
+      if (!FONT_LEVELS[level]) level = 'normal';
+      document.documentElement.style.setProperty('--lyric-font-size', FONT_LEVELS[level]);
+      document.querySelectorAll('[data-font-level]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.fontLevel === level);
+      });
+    }
 
     const DEFAULT_SEARCH_PLACEHOLDER = "曲名・作品名・歌手・ブランドで検索...";
 
@@ -1035,6 +1129,7 @@
     // タグ/チップからの厳密絞り込み（完全一致）
     function filterByExactTag(field, value) {
       activeFilter = { field, value };
+      renderLimit = PAGE_SIZE;
       searchInput.value = '';
       searchInput.placeholder = `[${getFieldLabel(field)}: ${value}] で絞り込み中...`;
       switchToListPage();
@@ -1088,6 +1183,24 @@
     });
 
     const blocksContainer = document.getElementById('blocksContainer');
+
+    // 歌詞ブロックを安全に作る（歌詞本文は value で入れるので HTML として解釈されない）
+    function createLyricBlockElement(text = '') {
+      const blockDiv = document.createElement('div');
+      blockDiv.className = 'lyric-block';
+      const header = document.createElement('div');
+      header.className = 'block-header';
+      const label = document.createElement('span');
+      label.className = 'block-label';
+      header.appendChild(label);
+      const ta = document.createElement('textarea');
+      ta.className = 'block-textarea';
+      ta.placeholder = '歌詞を入力...';
+      ta.value = text;
+      blockDiv.appendChild(header);
+      blockDiv.appendChild(ta);
+      return blockDiv;
+    }
     const addBlockBtn = document.getElementById('addBlockBtn');
 
     function updateBlockLabels() {
@@ -1139,41 +1252,35 @@
       const gameTitle = document.getElementById('gameTitle').value.trim();
       const brandName = document.getElementById('brandName').value.trim();
       const songType = document.getElementById('songType').value;
-      
+
       const artistInputs = artistsContainer.querySelectorAll('.artist-input');
       const artists = Array.from(artistInputs).map(inp => inp.value.trim()).filter(val => val.length > 0);
 
       const textareas = blocksContainer.querySelectorAll('.block-textarea');
       const blocks = Array.from(textareas).map(ta => ta.value.trim()).filter(text => text.length > 0);
 
+      const now = new Date().getTime();
       const lyricData = {
-        songTitle,
-        gameTitle,
-        brandName,
-        songType,
-        artists,
-        artistName: artists.join(' / '), // 過去データとの後方互換用
+        songTitle, gameTitle, brandName, songType, artists,
+        artistName: artists.join(' / '),
         blocks,
-        createdAt: editingId ? (currentDetailItem ? currentDetailItem.createdAt : new Date().getTime()) : new Date().getTime()
+        createdAt: editingId ? (currentDetailItem ? currentDetailItem.createdAt : now) : now,
+        updatedAt: now
       };
+      if (editingId) lyricData.id = editingId;
 
-      if (editingId) {
-        lyricData.id = editingId;
-      }
+      // 重複チェック（編集中の自分自身は除く）
+      loadAllLyrics().then(all => {
+        const key = lyricDedupKey(lyricData);
+        const dup = all.find(it => it.id !== editingId && lyricDedupKey(it) === key);
+        if (dup && !confirm('同じ曲名・作品名・歌手の歌詞が既に登録されています。\nそれでも保存しますか？')) return;
 
-      const tx = db.transaction('lyrics', 'readwrite');
-      const store = tx.objectStore('lyrics');
-      
-      if (editingId) {
-        store.put(lyricData);
-      } else {
-        store.add(lyricData);
-      }
-
-      tx.oncomplete = () => {
-        resetForm();
-        switchToListPage();
-      };
+        const tx = db.transaction('lyrics', 'readwrite');
+        const store = tx.objectStore('lyrics');
+        if (editingId) { store.put(lyricData); } else { store.add(lyricData); }
+        tx.oncomplete = () => { invalidateLyricsCache(); resetForm(); switchToListPage(); };
+        tx.onerror = () => alert('保存に失敗しました。');
+      });
     });
 
     document.getElementById('editBtn').addEventListener('click', () => {
@@ -1192,24 +1299,10 @@
       blocksContainer.innerHTML = '';
       if (currentDetailItem.blocks && currentDetailItem.blocks.length > 0) {
         currentDetailItem.blocks.forEach(text => {
-          const blockDiv = document.createElement('div');
-          blockDiv.className = 'lyric-block';
-          blockDiv.innerHTML = `
-            <div class="block-header">
-              <span class="block-label"></span>
-            </div>
-            <textarea class="block-textarea" placeholder="歌詞を入力...">${text}</textarea>
-          `;
-          blocksContainer.appendChild(blockDiv);
+          blocksContainer.appendChild(createLyricBlockElement(text));
         });
       } else {
-        const blockDiv = document.createElement('div');
-        blockDiv.className = 'lyric-block';
-        blockDiv.innerHTML = `
-          <div class="block-header"><span class="block-label"></span></div>
-          <textarea class="block-textarea" placeholder="歌詞を入力..."></textarea>
-        `;
-        blocksContainer.appendChild(blockDiv);
+        blocksContainer.appendChild(createLyricBlockElement(''));
       }
       updateBlockLabels();
 
@@ -1231,6 +1324,7 @@
         store.delete(editingId);
 
         tx.oncomplete = () => {
+          invalidateLyricsCache();
           resetForm();
           switchToListPage();
         };
@@ -1242,82 +1336,126 @@
 
     function renderLyricsList() {
       if (!db) return;
+      if (allLyricsCache) { renderLyricsFromCache(); return; }
+      loadAllLyrics().then(() => renderLyricsFromCache());
+    }
 
-      const tx = db.transaction('lyrics', 'readonly');
-      const store = tx.objectStore('lyrics');
-      const req = store.getAll();
+    function renderLyricsFromCache() {
+      let lyrics = [...(allLyricsCache || [])].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      const query = searchInput.value.trim();
 
-      req.onsuccess = () => {
-        let lyrics = req.result.sort((a, b) => b.createdAt - a.createdAt);
-        const query = searchInput.value.trim();
+      if (activeFilter) {
+        const targetVal = activeFilter.value.toLowerCase();
+        lyrics = lyrics.filter(item => {
+          if (activeFilter.field === 'artists' || activeFilter.field === 'artistName') {
+            return getArtistsArray(item).some(a => a.toLowerCase() === targetVal);
+          }
+          return (item[activeFilter.field] || '').toLowerCase() === targetVal;
+        });
+      } else if (query !== '') {
+        const q = query.toLowerCase();
+        lyrics = lyrics.filter(item => {
+          const artistMatch = getArtistsArray(item).some(a => a.toLowerCase().includes(q));
+          return artistMatch ||
+            (item.songTitle || '').toLowerCase().includes(q) ||
+            (item.gameTitle || '').toLowerCase().includes(q) ||
+            (item.brandName || '').toLowerCase().includes(q) ||
+            (item.songType || '').toLowerCase().includes(q) ||
+            (item.blocks || []).join('\n').toLowerCase().includes(q);
+        });
+      }
 
-        // 1. タグタップ時の厳密フィルター（完全一致）
+      // 絞り込みバーの表示
+      const filterBar = document.getElementById('filterBar');
+      const filterBarText = document.getElementById('filterBarText');
+      if (filterBar && filterBarText) {
         if (activeFilter) {
-          const targetVal = activeFilter.value.toLowerCase();
-          lyrics = lyrics.filter(item => {
-            if (activeFilter.field === 'artists' || activeFilter.field === 'artistName') {
-              const itemArtists = getArtistsArray(item);
-              return itemArtists.some(a => a.toLowerCase() === targetVal);
-            }
-            const val = (item[activeFilter.field] || '').toLowerCase();
-            return val === targetVal;
-          });
-        }
-        // 2. 検索窓手入力時のフリーワード検索（あいまい部分一致）
-        else if (query !== '') {
-          const q = query.toLowerCase();
-          lyrics = lyrics.filter(item => {
-            const itemArtists = getArtistsArray(item);
-            const artistMatch = itemArtists.some(a => a.toLowerCase().includes(q));
-
-            return artistMatch ||
-              (item.songTitle || '').toLowerCase().includes(q) ||
-              (item.gameTitle || '').toLowerCase().includes(q) ||
-              (item.brandName || '').toLowerCase().includes(q) ||
-              (item.songType || '').toLowerCase().includes(q);
-          });
-        }
-
-        lyricList.innerHTML = '';
-
-        if (lyrics.length === 0) {
-          emptyState.style.display = 'flex';
-          lyricList.style.display = 'none';
+          filterBar.style.display = 'flex';
+          filterBarText.textContent = `${getFieldLabel(activeFilter.field)}： ${activeFilter.value} で絞り込み中`;
         } else {
-          emptyState.style.display = 'none';
-          lyricList.style.display = 'flex';
-
-          lyrics.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'lyric-card';
-
-            let metaText = item.gameTitle;
-            if (item.brandName) {
-              metaText = metaText ? `${metaText} (${item.brandName})` : item.brandName;
-            }
-
-            const itemArtists = getArtistsArray(item);
-            const artistDisplay = itemArtists.length > 0 ? itemArtists.join(' / ') : '歌手未設定';
-            const previewText = item.blocks && item.blocks.length > 0 ? item.blocks[0] : '';
-
-            card.innerHTML = `
-              <div class="card-meta">
-                <span class="card-game-brand">${metaText || '作品名未設定'}</span>
-                <span class="card-badge">${item.songType}</span>
-              </div>
-              <div class="card-song-title">${item.songTitle}</div>
-              <div class="card-artist">${artistDisplay}</div>
-              ${previewText ? `<div class="card-preview">${previewText}</div>` : ''}
-            `;
-
-            card.addEventListener('click', () => {
-              openDetailPage(item, true);
-            });
-
-            lyricList.appendChild(card);
-          });
+          filterBar.style.display = 'none';
         }
-      };
+      }
+
+      const totalMatched = lyrics.length;
+      const resultMeta = document.getElementById('resultMeta');
+      if (resultMeta) {
+        resultMeta.style.display = 'block';
+        resultMeta.textContent = (activeFilter || query) ? `${totalMatched}件が見つかりました` : `全${totalMatched}件`;
+      }
+
+      lyricList.innerHTML = '';
+      const emptyTitle = emptyState.querySelector('.empty-title');
+      const emptyDesc = emptyState.querySelector('.empty-desc');
+
+      if (totalMatched === 0) {
+        emptyState.style.display = 'flex';
+        lyricList.style.display = 'none';
+        if (activeFilter || query) {
+          if (emptyTitle) emptyTitle.textContent = '見つかりませんでした';
+          if (emptyDesc) emptyDesc.textContent = '検索や絞り込みの条件を変えてみてください。';
+        } else {
+          if (emptyTitle) emptyTitle.textContent = '歌詞がまだありません';
+          if (emptyDesc) emptyDesc.innerHTML = '下の「追加」タブから<br>お気に入りの楽曲を登録しましょう。';
+        }
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      lyricList.style.display = 'flex';
+
+      const visible = lyrics.slice(0, renderLimit);
+      visible.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'lyric-card';
+
+        let metaText = item.gameTitle;
+        if (item.brandName) metaText = metaText ? `${metaText} (${item.brandName})` : item.brandName;
+
+        const metaRow = document.createElement('div');
+        metaRow.className = 'card-meta';
+        const gameSpan = document.createElement('span');
+        gameSpan.className = 'card-game-brand';
+        gameSpan.textContent = metaText || '作品名未設定';
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'card-badge';
+        badgeSpan.textContent = item.songType || '';
+        metaRow.appendChild(gameSpan);
+        metaRow.appendChild(badgeSpan);
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'card-song-title';
+        titleDiv.textContent = item.songTitle || '';
+
+        const artistDiv = document.createElement('div');
+        artistDiv.className = 'card-artist';
+        const itemArtists = getArtistsArray(item);
+        artistDiv.textContent = itemArtists.length > 0 ? itemArtists.join(' / ') : '歌手未設定';
+
+        card.appendChild(metaRow);
+        card.appendChild(titleDiv);
+        card.appendChild(artistDiv);
+
+        const previewText = item.blocks && item.blocks.length > 0 ? item.blocks[0] : '';
+        if (previewText) {
+          const previewDiv = document.createElement('div');
+          previewDiv.className = 'card-preview';
+          previewDiv.textContent = previewText;
+          card.appendChild(previewDiv);
+        }
+
+        card.addEventListener('click', () => { openDetailPage(item, true); });
+        lyricList.appendChild(card);
+      });
+
+      if (totalMatched > visible.length) {
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'show-more-btn';
+        moreBtn.textContent = `もっと見る（残り ${totalMatched - visible.length} 件）`;
+        moreBtn.addEventListener('click', () => { renderLimit += PAGE_SIZE; renderLyricsFromCache(); });
+        lyricList.appendChild(moreBtn);
+      }
     }
 
     function openDetailPage(item, pushHistory = true) {
@@ -1374,61 +1512,55 @@
     function createChip(text, fieldName, categoryLabel, iconSvg) {
       const chip = document.createElement('div');
       chip.className = 'meta-chip';
-      chip.innerHTML = `${iconSvg} <span>${text}</span>`;
+      chip.innerHTML = iconSvg;
+      const span = document.createElement('span');
+      span.textContent = text;
+      chip.appendChild(span);
       chip.title = `${categoryLabel}: ${text} で絞り込み`;
-      chip.addEventListener('click', () => {
-        filterByExactTag(fieldName, text);
-      });
+      chip.addEventListener('click', () => { filterByExactTag(fieldName, text); });
       return chip;
     }
 
     function buildCategoryDrawer() {
       if (!db) return;
-
-      const tx = db.transaction('lyrics', 'readonly');
-      const store = tx.objectStore('lyrics');
-      const req = store.getAll();
-
-      req.onsuccess = () => {
-        const lyrics = req.result;
-
-        const artists = {};
-        const games = {};
-        const brands = {};
-        const types = {};
-
+      updateLastExportNote();
+      updateSoundToggleBtn();
+      loadAllLyrics().then(lyrics => {
+        const artists = {}; const games = {}; const brands = {}; const types = {};
         lyrics.forEach(item => {
-          const itemArtists = getArtistsArray(item);
-          itemArtists.forEach(a => {
-            if (a) artists[a] = (artists[a] || 0) + 1;
-          });
-
+          getArtistsArray(item).forEach(a => { if (a) artists[a] = (artists[a] || 0) + 1; });
           if (item.gameTitle) games[item.gameTitle] = (games[item.gameTitle] || 0) + 1;
           if (item.brandName) brands[item.brandName] = (brands[item.brandName] || 0) + 1;
           if (item.songType) types[item.songType] = (types[item.songType] || 0) + 1;
         });
-
         renderTagGroup('artistTags', 'artists', artists);
         renderTagGroup('gameTags', 'gameTitle', games);
         renderTagGroup('brandTags', 'brandName', brands);
         renderTagGroup('typeTags', 'songType', types);
-      };
+      });
     }
 
     function renderTagGroup(containerId, fieldName, dataMap) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
-
       const keys = Object.keys(dataMap).sort((a, b) => dataMap[b] - dataMap[a]);
       if (keys.length === 0) {
-        container.innerHTML = '<span style="font-size:0.75rem; color:var(--text-sub);">登録なし</span>';
+        const none = document.createElement('span');
+        none.style.cssText = 'font-size:0.75rem; color:var(--text-sub);';
+        none.textContent = '登録なし';
+        container.appendChild(none);
         return;
       }
-
       keys.forEach(key => {
         const tag = document.createElement('div');
         tag.className = 'category-tag';
-        tag.innerHTML = `<span>${key}</span> <span class="tag-count">${dataMap[key]}</span>`;
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = key;
+        const countSpan = document.createElement('span');
+        countSpan.className = 'tag-count';
+        countSpan.textContent = dataMap[key];
+        tag.appendChild(nameSpan);
+        tag.appendChild(countSpan);
         tag.addEventListener('click', () => {
           drawerOverlay.classList.remove('active');
           filterByExactTag(fieldName, key);
@@ -1452,6 +1584,8 @@
         a.href = url;
         a.download = `lyric_backup_${new Date().toISOString().slice(0,10)}.json`;
         a.click();
+        try { localStorage.setItem('lyricLastExportAt', String(Date.now())); } catch (e) {}
+        updateLastExportNote();
         URL.revokeObjectURL(url);
       };
     });
@@ -1470,44 +1604,109 @@
 
       const reader = new FileReader();
       reader.onload = (event) => {
-        try {
-          const lyrics = JSON.parse(event.target.result);
-          if (!Array.isArray(lyrics)) {
-            alert('正しいバックアップファイルではありません。');
+        let parsed;
+        try { parsed = JSON.parse(event.target.result); }
+        catch (err) { alert('ファイルの読み込みに失敗しました。JSON形式をご確認ください。'); return; }
+        if (!Array.isArray(parsed)) { alert('正しいバックアップファイルではありません。'); return; }
+
+        // 検証と正規化（壊れた項目は捨てる／古い形式 artistName にも対応）
+        const valid = []; let invalidCount = 0;
+        parsed.forEach(raw => {
+          if (!raw || typeof raw !== 'object') { invalidCount++; return; }
+          const songTitle = typeof raw.songTitle === 'string' ? raw.songTitle.trim() : '';
+          if (!songTitle) { invalidCount++; return; }
+          let artists = [];
+          if (Array.isArray(raw.artists)) artists = raw.artists.filter(a => typeof a === 'string' && a.trim()).map(a => a.trim());
+          else if (typeof raw.artistName === 'string' && raw.artistName.trim()) artists = raw.artistName.split('/').map(x => x.trim()).filter(Boolean);
+          let blocks = [];
+          if (Array.isArray(raw.blocks)) blocks = raw.blocks.filter(b => typeof b === 'string' && b.trim()).map(b => b.trim());
+          else if (typeof raw.blocks === 'string' && raw.blocks.trim()) blocks = [raw.blocks.trim()];
+          const item = {
+            songTitle,
+            gameTitle: typeof raw.gameTitle === 'string' ? raw.gameTitle.trim() : '',
+            brandName: typeof raw.brandName === 'string' ? raw.brandName.trim() : '',
+            songType: typeof raw.songType === 'string' && raw.songType ? raw.songType : 'その他',
+            artists,
+            artistName: artists.join(' / '),
+            blocks,
+            createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now()
+          };
+          if (typeof raw.updatedAt === 'number') item.updatedAt = raw.updatedAt;
+          valid.push(item);
+        });
+
+        loadAllLyrics().then(existing => {
+          const seen = new Set(existing.map(it => lyricDedupKey(it)));
+          const toAdd = []; let dupCount = 0;
+          valid.forEach(item => {
+            const key = lyricDedupKey(item);
+            if (seen.has(key)) { dupCount++; return; }
+            seen.add(key); toAdd.push(item);
+          });
+
+          if (toAdd.length === 0) {
+            alert(`追加できる新しい歌詞はありませんでした。\n（重複 ${dupCount} 件／無効 ${invalidCount} 件はスキップ）`);
             return;
           }
+          if (!confirm(`${toAdd.length} 件の歌詞を追加します。\n（重複 ${dupCount} 件／無効 ${invalidCount} 件はスキップ）\nよろしいですか？`)) return;
 
-          if (confirm(`${lyrics.length}件の歌詞データを読み込みます。よろしいですか？`)) {
-            const tx = db.transaction('lyrics', 'readwrite');
-            const store = tx.objectStore('lyrics');
-
-            lyrics.forEach(item => {
-              delete item.id;
-              store.add(item);
-            });
-
-            tx.oncomplete = () => {
-              alert('データの取り込みが完了いたしましたわ！');
-              drawerOverlay.classList.remove('active');
-              switchToListPage();
-            };
-          }
-        } catch (err) {
-          alert('ファイルの読み込みに失敗いたしました。JSON形式をご確認ください。');
-        }
+          const tx = db.transaction('lyrics', 'readwrite');
+          const store = tx.objectStore('lyrics');
+          toAdd.forEach(item => store.add(item));
+          tx.oncomplete = () => {
+            invalidateLyricsCache();
+            alert(`${toAdd.length} 件の歌詞を取り込みました。`);
+            drawerOverlay.classList.remove('active');
+            switchToListPage();
+          };
+          tx.onerror = () => alert('取り込みに失敗しました。');
+        });
       };
       reader.readAsText(file);
       e.target.value = '';
     });
 
-    // 検索窓への入力イベント（手入力時はタグ絞り込み解除）
+    // 検索窓への入力イベント（手入力時はタグ絞り込み解除／少し遅延させて軽くする）
+    const searchClearBtn = document.getElementById('searchClearBtn');
+    function updateSearchClearBtn() {
+      if (searchClearBtn) searchClearBtn.style.display = searchInput.value ? 'block' : 'none';
+    }
     searchInput.addEventListener('input', () => {
       if (activeFilter) {
         activeFilter = null;
         searchInput.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
       }
-      renderLyricsList();
+      renderLimit = PAGE_SIZE;
+      updateSearchClearBtn();
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(renderLyricsList, 150);
     });
+    if (searchClearBtn) {
+      searchClearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        updateSearchClearBtn();
+        renderLyricsList();
+        searchInput.focus();
+      });
+    }
+    const filterClearBtn = document.getElementById('filterClearBtn');
+    if (filterClearBtn) {
+      filterClearBtn.addEventListener('click', () => {
+        activeFilter = null;
+        searchInput.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
+        renderLimit = PAGE_SIZE;
+        renderLyricsList();
+      });
+    }
+
+    // 文字サイズ切替（詳細画面）
+    document.querySelectorAll('[data-font-level]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        try { localStorage.setItem('lyricFontLevel', btn.dataset.fontLevel); } catch (e) {}
+        applyFontLevel(btn.dataset.fontLevel);
+      });
+    });
+    applyFontLevel(localStorage.getItem('lyricFontLevel') || 'normal');
 
     // PWA Service Worker 登録処理
     if ('serviceWorker' in navigator) {
@@ -1518,24 +1717,45 @@
       });
     }
 
-    // --- 起動時ランダム効果音再生 ---
+    // --- 起動時ランダム効果音再生（ON/OFF切替つき・二重再生防止） ---
+    function isStartSoundEnabled() {
+      try { return localStorage.getItem('lyricStartSound') !== 'off'; } catch (e) { return true; }
+    }
+    function updateSoundToggleBtn() {
+      const btn = document.getElementById('soundToggleBtn');
+      if (btn) btn.textContent = isStartSoundEnabled() ? 'ON' : 'OFF';
+    }
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    if (soundToggleBtn) {
+      soundToggleBtn.addEventListener('click', () => {
+        try { localStorage.setItem('lyricStartSound', isStartSoundEnabled() ? 'off' : 'on'); } catch (e) {}
+        updateSoundToggleBtn();
+      });
+    }
+    updateSoundToggleBtn();
+
     function playRandomStartSound() {
+      if (!isStartSoundEnabled()) return;
       const randomNum = Math.floor(Math.random() * 5) + 1;
       const audio = new Audio(`./start${randomNum}.wav`);
       audio.volume = 0.6;
-
-      audio.play().catch(() => {
-        const playOnFirstTouch = () => {
-          audio.play();
-          document.removeEventListener('click', playOnFirstTouch);
-          document.removeEventListener('touchstart', playOnFirstTouch);
-        };
+      let played = false;
+      const tryPlay = () => {
+        if (played) return;
+        played = true;
+        document.removeEventListener('click', playOnFirstTouch);
+        document.removeEventListener('touchstart', playOnFirstTouch);
+        audio.play().catch(() => {});
+      };
+      const playOnFirstTouch = () => tryPlay();
+      audio.play().then(() => { played = true; }).catch(() => {
         document.addEventListener('click', playOnFirstTouch);
         document.addEventListener('touchstart', playOnFirstTouch);
       });
     }
 
     window.addEventListener('DOMContentLoaded', playRandomStartSound);
+
   </script>
 
 </body>
