@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lyric-collection-v6'; // ★更新時はここを v5, v6 と上げていきます
+const CACHE_NAME = 'lyric-collection-v7'; // ★更新時はここを v5, v6 と上げていきます
 
 // アプリの動作に必須のもの：どれか失敗したらインストール自体を失敗扱いにする
 const CORE_ASSETS = [
