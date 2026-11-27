@@ -905,6 +905,21 @@
         </div>
 
         <div class="form-group">
+          <label for="lyricist">作詞</label>
+          <input type="text" id="lyricist" class="form-input" placeholder="作詞者の名前">
+        </div>
+
+        <div class="form-group">
+          <label for="composer">作曲</label>
+          <input type="text" id="composer" class="form-input" placeholder="作曲者の名前">
+        </div>
+
+        <div class="form-group">
+          <label for="arranger">編曲</label>
+          <input type="text" id="arranger" class="form-input" placeholder="編曲者の名前">
+        </div>
+
+        <div class="form-group">
           <label>歌詞ブロック</label>
           <div id="blocksContainer" class="blocks-container">
             <div class="lyric-block">
@@ -1190,6 +1205,9 @@
         case 'gameTitle': return '作品';
         case 'brandName': return 'ブランド';
         case 'songType': return '種別';
+        case 'lyricist': return '作詞';
+        case 'composer': return '作曲';
+        case 'arranger': return '編曲';
         default: return '絞り込み';
       }
     }
@@ -1425,6 +1443,9 @@
       const gameTitle = document.getElementById('gameTitle').value.trim();
       const brandName = document.getElementById('brandName').value.trim();
       const songType = document.getElementById('songType').value;
+      const lyricist = document.getElementById('lyricist').value.trim();
+      const composer = document.getElementById('composer').value.trim();
+      const arranger = document.getElementById('arranger').value.trim();
 
       const artistInputs = artistsContainer.querySelectorAll('.artist-input');
       const artists = Array.from(artistInputs).map(inp => inp.value.trim()).filter(val => val.length > 0);
@@ -1434,13 +1455,14 @@
 
       const now = new Date().getTime();
       const lyricData = {
-        songTitle, gameTitle, brandName, songType, artists,
+        songTitle, gameTitle, brandName, songType, artists, lyricist, composer, arranger,
         artistName: artists.join(' / '),
         blocks,
         createdAt: editingId ? (currentDetailItem ? currentDetailItem.createdAt : now) : now,
         updatedAt: now
       };
       if (editingId) lyricData.id = editingId;
+      if (editingId && currentDetailItem && currentDetailItem.favorite) lyricData.favorite = true;
 
       // 重複チェック（編集中の自分自身は除く）
       loadAllLyrics().then(async (all) => {
@@ -1469,6 +1491,9 @@
       document.getElementById('gameTitle').value = currentDetailItem.gameTitle || '';
       document.getElementById('brandName').value = currentDetailItem.brandName || '';
       document.getElementById('songType').value = currentDetailItem.songType || 'OP';
+      document.getElementById('lyricist').value = currentDetailItem.lyricist || '';
+      document.getElementById('composer').value = currentDetailItem.composer || '';
+      document.getElementById('arranger').value = currentDetailItem.arranger || '';
 
       const existingArtists = getArtistsArray(currentDetailItem);
       renderArtistInputs(existingArtists.length > 0 ? existingArtists : ['']);
@@ -1547,6 +1572,9 @@
             (item.gameTitle || '').toLowerCase().includes(q) ||
             (item.brandName || '').toLowerCase().includes(q) ||
             (item.songType || '').toLowerCase().includes(q) ||
+            (item.lyricist || '').toLowerCase().includes(q) ||
+            (item.composer || '').toLowerCase().includes(q) ||
+            (item.arranger || '').toLowerCase().includes(q) ||
             (item.blocks || []).join('\n').toLowerCase().includes(q);
         });
       }
@@ -1725,6 +1753,16 @@
         chipsRow.appendChild(chip);
       }
 
+      const creditDefs = [
+        ['lyricist', '作詞'], ['composer', '作曲'], ['arranger', '編曲']
+      ];
+      creditDefs.forEach(([field, label]) => {
+        const val = (item[field] || '').trim();
+        if (!val) return;
+        const chip = createChip(val, field, label, `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`);
+        chipsRow.appendChild(chip);
+      });
+
       const lyricsStage = document.getElementById('lyricsStage');
       lyricsStage.innerHTML = '';
 
@@ -1863,6 +1901,9 @@
             songType: typeof raw.songType === 'string' && raw.songType ? raw.songType : 'その他',
             artists,
             artistName: artists.join(' / '),
+            lyricist: typeof raw.lyricist === 'string' ? raw.lyricist.trim() : '',
+            composer: typeof raw.composer === 'string' ? raw.composer.trim() : '',
+            arranger: typeof raw.arranger === 'string' ? raw.arranger.trim() : '',
             blocks,
             createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : Date.now(),
             favorite: raw.favorite === true
